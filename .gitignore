@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js Build Outputs
+.next/
+out/
+
+# NestJS Build Outputs
+dist/
+dist-*/
+
+# Database Logs & Storage
+*.db
+*.db-journal
+*.sqlite
+prisma/dev.db
+
+# Environmental Secrets
+.env
+.env.local
+.env.*.local
+
+# IDE & OS Files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db

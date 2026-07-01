@@ -1,0 +1,30 @@
+{
+  "name": "foodbridge-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FoodBridge AI - Intelligent Food Redistribution SaaS",
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend",
+    "apps/angular-frontend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:angular": "npm run start --workspace=apps/angular-frontend",
+    "dev:ai": "cd apps/ai-service && uvicorn main:app --reload --port 8000",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:angular\"",
+    "build:frontend": "npm run build --workspace=apps/frontend",
+    "build:backend": "npm run build --workspace=apps/backend",
+    "build:angular": "npm run build --workspace=apps/angular-frontend",
+    "build": "npm run build:backend && npm run build:frontend && npm run build:angular",
+    "install:all": "npm install && cd apps/ai-service && pip install -r requirements.txt",
+    "prisma:generate": "npm run prisma:generate --workspace=apps/backend",
+    "prisma:db:push": "npm run prisma:db:push --workspace=apps/backend",
+    "prisma:seed": "npm run prisma:seed --workspace=apps/backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

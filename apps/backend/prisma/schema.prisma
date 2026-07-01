@@ -1,0 +1,170 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// User Accounts & Authentication
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  name            String
+  role            String           // "DONOR" | "NGO" | "VOLUNTEER" | "ADMIN"
+  passwordHash    String           @default("hashed_placeholder")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  organizationId  String?
+  organization    Organization?    @relation(fields: [organizationId], references: [id])
+  
+  // Relations
+  donations       FoodDonation[]   @relation("DonorUser")
+  deliveries      Delivery[]       @relation("VolunteerUser")
+  achievements    UserAchievement[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  messagesSent    Message[]
+  apiKeys         ApiKey[]
+}
+
+// Organizations (Restaurants, Supermarkets, NGOs)
+model Organization {
+  id            String         @id @default(uuid())
+  name          String
+  type          String         // "RESTAURANT" | "SUPERMARKET" | "BAKERY" | "NGO" | "FOOD_BANK" | "SHELTER"
+  latitude      Float
+  longitude     Float
+  address       String
+  capacityKg    Float          @default(100.0)
+  currentKg     Float          @default(0.0)
+  dietaryTags   String         @default("[]") // JSON string e.g. '["Halal","Vegetarian"]'
+  urgencyLevel  Int            @default(1)
+  verified      Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  
+  users         User[]
+  donationsRcvd FoodDonation[] @relation("RecipientNGO")
+  csrReports    CSRReport[]
+}
+
+// Food Donations
+model FoodDonation {
+  id                  String       @id @default(uuid())
+  title               String
+  description         String?
+  foodType            String       // "Fresh Produce" | "Bakery" | "Cooked Meal" | "Dairy" | "Shelf Stable"
+  weightKg            Float
+  status              String       // "PENDING" | "MATCHED" | "PICKED_UP" | "DELIVERED" | "CANCELLED"
+  expirationTime      DateTime
+  imageUrl            String?
+  freshnessPercent    Float        @default(100.0)
+  spoilageDetected    Boolean      @default(false)
+  packagingSafety     String       @default("Sealed") // "Sealed" | "Exposed" | "Damaged"
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  // Relationships
+  donorId             String
+  donor               User         @relation("DonorUser", fields: [donorId], references: [id])
+  recipientId         String?
+  recipient           Organization? @relation("RecipientNGO", fields: [recipientId], references: [id])
+
+  deliveries          Delivery[]
+}
+
+// Delivery & Logistics Tracking
+model Delivery {
+  id              String       @id @default(uuid())
+  donationId      String
+  donation        FoodDonation @relation(fields: [donationId], references: [id])
+  volunteerId     String
+  volunteer       User         @relation("VolunteerUser", fields: [volunteerId], references: [id])
+  status          String       // "ASSIGNED" | "EN_ROUTE" | "PICKED_UP" | "DELIVERED"
+  qrCode          String       @unique
+  estimatedEtaMins Int         @default(30)
+  currentLat      Float?
+  currentLng      Float?
+  routeCoordinates String      @default("[]") // JSON string of lat-lng points
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  chats           Chat[]
+}
+
+// Interactive Real-Time Chats
+model Chat {
+  id         String    @id @default(uuid())
+  deliveryId String
+  delivery   Delivery  @relation(fields: [deliveryId], references: [id])
+  createdAt  DateTime  @default(now())
+  messages   Message[]
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+}
+
+// Notifications
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Gamification Badges & Leaderboards
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  badgeName     String   // "Eco Hero" | "First Rescue" | "Super Driver"
+  badgeIcon     String
+  pointsEarned  Int      @default(100)
+  unlockedAt    DateTime @default(now())
+}
+
+// CSR (Corporate Social Responsibility) Reporting
+model CSRReport {
+  id              String       @id @default(uuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  mealsSaved      Int          @default(0)
+  carbonSavedKg   Float        @default(0.0)
+  waterSavedLitres Float       @default(0.0)
+  landfillReducedKg Float      @default(0.0)
+  periodStart     DateTime
+  periodEnd       DateTime
+  createdAt       DateTime     @default(now())
+}
+
+// Security Audit Logs
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String   // e.g. "USER_LOGIN" | "DONATION_VERIFY" | "API_KEY_ROTATED"
+  details   String
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+// SaaS API Keys & Subscriptions
+model ApiKey {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  key       String   @unique
+  name      String   // "Development Key" | "Production Webhook"
+  createdAt DateTime @default(now())
+}
